@@ -1,10 +1,9 @@
 import os
 import uvicorn
-from fastapi import FastAPI, Request
-from telegram import Update
+from fastapi import FastAPI, Request, Response
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
-ApplicationBuilder,
+Application,
 CommandHandler,
 MessageHandler,
 filters,
@@ -79,8 +78,10 @@ return context.user_data.get(¡°mode¡±, ¡°normal¡±)
 
 def set_user_mode(context: ContextTypes.DEFAULT_TYPE, mode: str):
 context.user_data[¡°mode¡±] = mode
+
 def get_history(context: ContextTypes.DEFAULT_TYPE):
 return context.user_data.setdefault(¡°history¡±, [])
+
 def clear_history(context: ContextTypes.DEFAULT_TYPE):
 context.user_data[¡°history¡±] = []
 context.user_data[¡°last_user_message¡±] = None
@@ -250,47 +251,57 @@ history.append({"role": "assistant", "content": reply_text})
 await update.message.reply_text(reply_text)
 ```
 
-# Create application
+# Build telegram application
 
-app = ApplicationBuilder().token(TOKEN).build()
+application = Application.builder().token(TOKEN).build()
 
-app.add_handler(CommandHandler(¡°start¡±, start))
-app.add_handler(CommandHandler(¡°help¡±, help_command))
-app.add_handler(CommandHandler(¡°menu¡±, menu))
-
-app.add_handler(
+application.add_handler(CommandHandler(¡°start¡±, start))
+application.add_handler(CommandHandler(¡°help¡±, help_command))
+application.add_handler(CommandHandler(¡°menu¡±, menu))
+application.add_handler(
 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text)
 )
 
-# Initialize application
-
-async def startup():
-await app.initialize()
-await app.start()
-
 # Create FastAPI app
 
-fastapi_app = FastAPI()
+app = FastAPI()
 
-@fastapi_app.post(¡±/webhook¡±)
+@app.on_event(¡°startup¡±)
+async def on_startup():
+¡°¡±¡°Initialize the bot when FastAPI starts¡±¡±¡±
+await application.initialize()
+await application.start()
+print(¡°Bot initialized and started!¡±)
+
+@app.on_event(¡°shutdown¡±)
+async def on_shutdown():
+¡°¡±¡°Clean up when FastAPI shuts down¡±¡±¡±
+await application.stop()
+await application.shutdown()
+
+@app.post(¡±/webhook¡±)
 async def webhook(request: Request):
+¡°¡±¡°Handle incoming webhook requests from Telegram¡±¡±¡±
+try:
 json_data = await request.json()
-update = Update.de_json(json_data, app.bot)
-await app.process_update(update)
-return {¡°status¡±: ¡°ok¡±}
+update = Update.de_json(json_data, application.bot)
+await application.process_update(update)
+return Response(status_code=200)
+except Exception as e:
+print(f¡±Error processing update: {e}¡±)
+return Response(status_code=500)
 
-@fastapi_app.get(¡±/¡±)
+@app.get(¡±/¡±)
 async def root():
+¡°¡±¡°Health check endpoint¡±¡±¡±
 return {¡°status¡±: ¡°Bot is running¡±}
 
+@app.get(¡±/health¡±)
+async def health():
+¡°¡±¡°Health check for Railway¡±¡±¡±
+return {¡°status¡±: ¡°healthy¡±}
+
 if **name** == ¡°**main**¡±:
-import asyncio
-
-```
-# Run startup
-asyncio.run(startup())
-
-# Start FastAPI server
-port = int(os.getenv("PORT", 8000))
-uvicorn.run(fastapi_app, host="0.0.0.0", port=port)
-```
+port = int(os.getenv(¡°PORT¡±, 8000))
+print(f¡±Starting bot on port {port}¡­¡±)
+uvicorn.run(app, host=¡°0.0.0.0¡±, port=port)
