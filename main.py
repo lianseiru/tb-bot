@@ -11,7 +11,7 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 if not TELEGRAM_TOKEN or not DEEPSEEK_API_KEY:
-raise ValueError("Missing TELEGRAM_TOKEN or DEEPSEEK_API_KEY")
+    raise ValueError("Missing TELEGRAM_TOKEN or DEEPSEEK_API_KEY")
 
 BASE_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
