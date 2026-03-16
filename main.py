@@ -254,33 +254,27 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_text = deepseek_reply(system_prompt, text)
     await update.message.reply_text(reply_text)
 
-
-import uvicorn
 from fastapi import FastAPI, Request
-from telegram import Update
-from telegram.ext import Application, CommandHandler
+from telegram.ext import Application
 
-# ... (keep all your existing functions: start, handle_text, etc.)
+# Global FastAPI app that Railway looks for
+app = FastAPI()
 
-def main():
-    # Create application
-    application = Application.builder().token(TOKEN).build()
-    
-    # Add all your handlers
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("menu", menu))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    
-    # FastAPI app for webhooks
-    app = FastAPI()
-    
-    @app.post("/")
-    async def webhook(request: Request):
-        update = Update.de_json(await request.json(), application.bot)
-        await application.process_update(update)
-        return {"ok": True}
-    
-    # Start webhook server
-    if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
+# Global Telegram Application
+telegram_app = Application.builder().token(TOKEN).build()
+
+# Register handlers once
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CommandHandler("help", help_command))
+telegram_app.add_handler(CommandHandler("menu", menu))
+telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+
+
+@app.post("/")
+async def webhook(request: Request):
+    """Receive updates from Telegram via webhook."""
+    data = await request.json()
+    update = Update.de_json(data, telegram_app.bot)
+    await telegram_app.process_update(update)
+    return {"ok": True}
+
