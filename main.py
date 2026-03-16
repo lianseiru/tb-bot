@@ -26,19 +26,19 @@ class TelegramUpdate(BaseModel):
     update_id: int
     message: dict
 
-@app.post("/webhook")
+@app.post("/")
+@app.post("")  # Empty path too
+@app.any("/")  # GET requests too
 async def webhook(request: Request):
     try:
         data = await request.json()
-        update = data.get('update_id')
-        message = data.get('message', {})
-        
-        chat_id = message.get('chat', {}).get('id')
-        user_id = message.get('from', {}).get('id', str(chat_id))
-        text = message.get('text', '')
-        
-        if not chat_id or not text:
-            return {"ok": True}
+        print(f"Received: {data}")  # Debug log
+        # ... rest of handler
+        return {"ok": True}
+    except Exception as e:
+        print(f"Webhook error: {e}")
+        return {"ok": True}
+
         
         # Get user state
         if user_id not in user_data:
