@@ -19,7 +19,7 @@ BASE_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
 user_data: Dict[str, Any] = {}
 
-@app.post(f"/{TELEGRAM_TOKEN}")
+@app.post(f"/webhook")
 async def webhook(request: Request):
     try:
         data = await request.json()
@@ -147,7 +147,7 @@ async def send_message(chat_id: int, text: str):
 
 @app.on_event("startup")
 async def set_webhook():
-    webhook_url = f"https://{os.getenv('RAILWAY_STATIC_URL')}/{TELEGRAM_TOKEN}"
+    webhook_url = f"https://{os.getenv('RAILWAY_STATIC_URL')}/webhook"
     async with httpx.AsyncClient() as client:
         r = await client.post(f"{BASE_URL}/setWebhook", json={"url": webhook_url})
         print(f"Webhook set: {r.json()}")
