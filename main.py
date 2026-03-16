@@ -51,8 +51,9 @@ async def webhook(request: Request):
         
         # Handle buttons/commands
         response = await handle_message(text, state, chat_id)
-        await send_message(chat_id, response)
-        
+        sent = await send_message(chat_id, response)
+        if not sent:
+            print(f"FAILED to send response to chat {chat_id}")
         return {"ok": True}
     except Exception as e:
         print(f"Error: {e}")
@@ -81,7 +82,12 @@ async def handle_message(text: str, state: dict, chat_id: int) -> str:
             state["history"].append({"role": "assistant", "content": reply})
             return reply
         return "Nothing to regenerate."
-    
+
+    response = await handle_message(text, state, chat_id)
+    print(f"GENERATED RESPONSE: {repr(response)[:100]}")  # See what bot wants to send
+    print(f"SENDING to chat_id: {chat_id}")
+    sent = await send_message(chat_id, response)
+
     # AI response
     state["last_user_message"] = text
     prompt = get_system_prompt(state["mode"])
@@ -121,12 +127,25 @@ async def call_deepseek(system_prompt: str, history: list, user_message: str) ->
         return f"Error: {response.status_code}"
 
 async def send_message(chat_id: int, text: str):
-    async with httpx.AsyncClient() as client:
-        await client.post(f"{BASE_URL}/sendMessage", json={
-            "chat_id": chat_id,
-            "text": text[:4096],  # Telegram limit
-            "parse_mode": "HTML"
-        })
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"{BASE_URL}/sendMessage",
+                json={
+                    "chat_id": chat_id,
+                    "text": text[:4096],  # Telegram limit
+                },
+                timeout=10.0
+            )
+            if response.status_code != 200:
+                print(f"Send failed: {response.status_code} - {response.text}")
+                return False
+            print(f"Sent: {text[:50]}...")
+            return True
+    except Exception as e:
+        print(f"Send error: {e}")
+        return False
+
 
 @app.on_event("startup")
 async def set_webhook():
