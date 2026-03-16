@@ -255,19 +255,35 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(reply_text)
 
 
+import uvicorn
+from fastapi import FastAPI, Request
+from telegram import Update
+from telegram.ext import Application, CommandHandler
+
+# ... (keep all your existing functions: start, handle_text, etc.)
+
 def main():
-    app = ApplicationBuilder().token(TOKEN).build()
+    # Create application
+    application = Application.builder().token(TOKEN).build()
+    
+    # Add all your handlers
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("menu", menu))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    
+    # FastAPI app for webhooks
+    app = FastAPI()
+    
+    @app.post("/")
+    async def webhook(request: Request):
+        update = Update.de_json(await request.json(), application.bot)
+        await application.process_update(update)
+        return {"ok": True}
+    
+    # Start webhook server
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_command))
-    app.add_handler(CommandHandler("menu", menu))
-
-    app.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text)
-    )
-
-    print("Bot is running with DeepSeek. Press Ctrl+C to stop.")
-    app.run_polling()
 
 
 if __name__ == "__main__":
