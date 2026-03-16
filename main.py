@@ -29,7 +29,7 @@ DEEPSEEK_MODEL = "deepseek-chat"
 app = FastAPI()
 
 # ===== TELEGRAM APP (global) =====
-telegram_app = Application.builder().token(TOKEN).build()
+telegram_app = None  # Lazy init
 
 # ===== YOUR HANDLERS =====
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -180,9 +180,23 @@ telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_
 @app.post("/")
 async def webhook(request: Request):
     data = await request.json()
-    update = Update.de_json(data, telegram_app.bot)
-    await telegram_app.process_update(update)
+    app_instance = await get_telegram_app()  # Init only when first request
+    update = Update.de_json(data, app_instance.bot)
+    await app_instance.process_update(update)
     return {"ok": True}
+
+
+async def get_telegram_app():
+    global telegram_app
+    if telegram_app is None:
+        telegram_app = Application.builder().token(TOKEN).build()
+        # Register handlers
+        telegram_app.add_handler(CommandHandler("start", start))
+        telegram_app.add_handler(CommandHandler("help", help_command))
+        telegram_app.add_handler(CommandHandler("menu", menu))
+        telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    return telegram_app
+
 
 if __name__ == "__main__":
     import uvicorn
