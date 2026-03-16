@@ -26,8 +26,7 @@ class TelegramUpdate(BaseModel):
     update_id: int
     message: dict
 
-@app.post("/")
-@app.post("")  # Matches both / and empty path
+@app.post("/webhook")
 async def webhook(request: Request):
     try:
         data = await request.json()
