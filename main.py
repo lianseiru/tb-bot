@@ -95,8 +95,8 @@ def get_system_prompt(mode: str) -> str:
         "normal": "You are a helpful AI assistant. Answer clearly and briefly.",
         "code": "Code assistant. Respond with concise code snippets and core logic only.",
         "english": "English assistant. Correct grammar, polish text, explain briefly."
-        }
-        return prompts.get(mode, prompts["normal"])
+    }
+    return prompts.get(mode, prompts["normal"])
 
 async def call_deepseek(system_prompt: str, history: list, user_message: str) -> str:
     try:
