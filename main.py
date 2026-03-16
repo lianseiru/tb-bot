@@ -1,5 +1,8 @@
 import os
 import asyncio
+#!/usr/bin/env python3
+import os
+from fastapi import FastAPI
 from fastapi import FastAPI, Request, HTTPException
 from pydantic import BaseModel
 import httpx
