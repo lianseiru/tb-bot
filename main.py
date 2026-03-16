@@ -135,15 +135,15 @@ async def send_message(chat_id: int, text: str):
                     "text": text[:4096],
                     },
                     timeout=10.0
-                )
-                if response.status_code != 200:
-                    print(f"Send failed: {response.status_code} - {response.text}")
-                    return False
-                print(f"Sent: {text[:50]}...")
-                return True
-        except Exception as e:
-            print(f"Send error: {e}")
-            return False
+            )
+            if response.status_code != 200:
+                print(f"Send failed: {response.status_code} - {response.text}")
+                return False
+            print(f"Sent: {text[:50]}...")
+            return True
+    except Exception as e:
+        print(f"Send error: {e}")
+        return False
 
 @app.on_event("startup")
 async def set_webhook():
